@@ -11,19 +11,22 @@ describe('Token', () => { /* here we're describing the functions that have to be
 	/*        tests go inside here...       */
 
 
-let token    /* this allow us to use this variable in every test function */
+let token, accounts, deployer   /* this allow us to use these variables in every test function */
+
 
 	beforeEach(async () => {
 	
-	//fetch the token from the blockchain so we can avoid it from duplicate code in each functions below
+	/* fetch the token from the blockchain so we can avoid it from duplicate code in each functions below */
 
 		const Token = await ethers.getContractFactory('Token')                                          /* first we call the smart contract */
 		token = await Token.deploy('Dapp University', 'DAPP', '1000000')                                /* then we wait to be deployed */
 
+		accounts = await ethers.getSigners()                                    /* >>>>>>>>this function from ehters library allow us to retrieve the accounts and is assigned to the "accounts" var */
+		deployer = accounts[0]               /* here we're trying to get the first account from the hardhat node in the "deployer" var */
 	})
 
 
-describe('Deployment', () => {                  //here we define first the main variable that has to be called in the tests
+ describe('Deployment', () => {                  /* >>>>>>here we define first the main variable that has to be called in the tests */
 
 	const name = 'Dapp University'
 	const symbol = 'DAPP'
@@ -31,43 +34,43 @@ describe('Deployment', () => {                  //here we define first the main 
 	const totalSupply = tokens('1000000')
 
 
-	it('has correct name', async () => {                /* >>>>>> here there's the function that shows the name of the token */
+	it('has correct name', async () => {                /* >>>>>>here there's the function that shows the name of the token */
 
-	//step 1. fetch the token from the blockchain (we did it in the before each function)
+	/* step 1. fetch the token from the blockchain (we did it in the before each function) */
 		
-	//step 2. read the token name
+	/* step 2. read the token name */
 		//const name = await token.name()
 
-	//step 3. check the name that is correct
+	/* step 3. check the name that is correct */
 		//expect(name).to.equal('Dapp University')
 
-		//now we put step2 and step3 in the same function (the previous steps' line are commented)
+		/* now we put step2 and step3 in the same function (the previous steps' line are commented) */
 		expect(await token.name()).to.equal(name)
 	})
 
 
-	it('has correct symbol', async () => {               /* >>>>>> here there's the function that shows the symbol of the token */
+	it('has correct symbol', async () => {               /* >>>>>>here there's the function that shows the symbol of the token */
 
-	//step 1. fetch the token from the blockchain (we did it in the before each function)
+	/* step 1. fetch the token from the blockchain (we did it in the before each function) */
 		
-	//step 2. read the token symbol
+	/* step 2. read the token symbol */
 		//const symbol = await token.symbol()          
 
-	//step 3. check the symbol that is correct
+	/* step 3. check the symbol that is correct */
 		//expect(symbol).to.equal('DAPP')
 
-		//now we put step2 and step3 in the same function (the previous steps' line are commented)
+		/* now we put step2 and step3 in the same function (the previous steps' line are commented) */
 		expect(await token.symbol()).to.equal(symbol)
 	})
 
 
-	it('has correct decimals', async () => {           /* >>>>>> here there's the function that shows the decimals of the token */
+	it('has correct decimals', async () => {           /* >>>>>>here there's the function that shows the decimals of the token */
 
 		expect(await token.decimals()).to.equal(decimals)
 	})
 
 
-	it('has correct total supply', async () => {           /* >>>>>> here there's the function that shows the decimals of the token */
+	it('has correct total supply', async () => {           /* >>>>>>here there's the function that shows the decimals of the token */
 
 		//const value = ethers.utils.parseUnits('1000000', 'ether')  /* here we use a function from utility's ether library that convert a number in the unit mesure we want */
 		//expect(await token.totalSupply()).to.equal(value)          /* so in the chai test we're gonna use the 'value' variable which contains the right number */
@@ -77,6 +80,10 @@ describe('Deployment', () => {                  //here we define first the main 
 
 		expect(await token.totalSupply()).to.equal(totalSupply)  /* according to the description of the function "tokens" outside the main, here we just need to call the var (that becomes a function and pass the value that is the argument which is "n") and the number we want to use */
 	})
-})
+
+	it('assings total supply to deployer', async () => {     /* this is the function that tests the ownership of the token by using the balance of accounts that hold the tokens */
+		expect(await token.balanceOf(deployer.address)).to.equal(totalSupply)     /* "deployer" it's the var from 'beforeEach' function. "Address" need to be specified to avoid error because the mapping in the solidity file assign the balance specifically to an address and not generically to an account */
+	})
+ })
 
 })
