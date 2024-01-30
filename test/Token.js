@@ -11,10 +11,10 @@ describe('Token', () => { /* here we're describing the functions that have to be
 	/*        tests go inside here...       */
 
 
-let token, accounts, deployer   /* this allow us to use these variables in every test function */
+let token, accounts, deployer, receiver   /* this allow us to use these variables in every test function */
 
 
-	beforeEach(async () => {
+	beforeEach(async () => { /* first beforeEach */
 	
 	/* fetch the token from the blockchain so we can avoid it from duplicate code in each functions below */
 
@@ -23,6 +23,7 @@ let token, accounts, deployer   /* this allow us to use these variables in every
 
 		accounts = await ethers.getSigners()                                    /* >>>>>>>>this function from ehters library allow us to retrieve the accounts and is assigned to the "accounts" var */
 		deployer = accounts[0]               /* here we're trying to get the first account from the hardhat node in the "deployer" var */
+		receiver = accounts[1]               /* here we're trying to get the second account from the hardhat node in the "receiver" var */
 	})
 
 
@@ -36,7 +37,7 @@ let token, accounts, deployer   /* this allow us to use these variables in every
 
 	it('has correct name', async () => {                /* >>>>>>here there's the function that shows the name of the token */
 
-	/* step 1. fetch the token from the blockchain (we did it in the before each function) */
+	/* step 1. fetch the token from the blockchain (we did it in the first "beforeEach" function) */
 		
 	/* step 2. read the token name */
 		//const name = await token.name()
@@ -51,7 +52,7 @@ let token, accounts, deployer   /* this allow us to use these variables in every
 
 	it('has correct symbol', async () => {               /* >>>>>>here there's the function that shows the symbol of the token */
 
-	/* step 1. fetch the token from the blockchain (we did it in the before each function) */
+	/* step 1. fetch the token from the blockchain (we did it in the first "beforeEach" function) */
 		
 	/* step 2. read the token symbol */
 		//const symbol = await token.symbol()          
@@ -81,9 +82,73 @@ let token, accounts, deployer   /* this allow us to use these variables in every
 		expect(await token.totalSupply()).to.equal(totalSupply)  /* according to the description of the function "tokens" outside the main, here we just need to call the var (that becomes a function and pass the value that is the argument which is "n") and the number we want to use */
 	})
 
-	it('assings total supply to deployer', async () => {     /* this is the function that tests the ownership of the token by using the balance of accounts that hold the tokens */
-		expect(await token.balanceOf(deployer.address)).to.equal(totalSupply)     /* "deployer" it's the var from 'beforeEach' function. "Address" need to be specified to avoid error because the mapping in the solidity file assign the balance specifically to an address and not generically to an account */
+	it('assings total supply to deployer', async () => {     /* this is the function that tests the ownership of the token by using the balance of accounts that hold the tokens (it's a balance checker) */
+		expect(await token.balanceOf(deployer.address)).to.equal(totalSupply)     /* "deployer" it's the var from first "beforeEach" function. "Address" need to be specified to avoid error because the mapping in the solidity file assign the balance specifically to an address and not generically to an account */
 	})
+ })
+
+ describe('Sending Tokens', () => {
+ 	
+ 	let amount, transaction, result                 /* these var are used in this function to chose the amount to transfer */
+
+  describe('Success', () => {  /* grouping the functions for transaction results */
+
+ 		beforeEach( async () => {  /* second before each */
+
+ 	/* step1. transfer tokens */
+		amount = tokens(100) /* the chosen amount for this test example */
+ 		transaction = await token.connect(deployer).transfer(receiver.address, amount) /* >>>>>>>in this var 'transaction' we use a function that connects the the deployer wallet to the token smart contract deployed on chain. Then we transfer the token to the receiver ADDRESS already defined before in the first "beforeEach" function and choose an amount (in this example case is 100). REMEMBER THAT THE ADDRESS PROPRETY IS A CALL FROM "ETHERS" LIBRARY SO WE'RE NOT DEFINING EXPLICITLY THE ADDRESS BUT JUST THE ACCOUNTS */
+ 		result = await transaction.wait() /* here we wait for the transaction to be executed in the blockchain and get a result in the 'result' var */
+ 		
+ 	})
+
+ 	it('transfers token balances', async () => {
+ 		
+ 	/* log balance before sending (This is just made to explictly see it in the console of hardat node) */
+ 		console.log("Deployer balance before transfer", await token.balanceOf(deployer.address))
+ 		console.log("Receiver balance before transfer", await token.balanceOf(receiver.address))
+
+ 		/* step2. ensure that tokens were transfered (balance changed) */
+		expect(await token.balanceOf(deployer.address)).to.equal(tokens(999900))  /* here we have the new total amount of the sender defined before (1000000 - 100) */
+ 		expect(await token.balanceOf(receiver.address)).to.equal(amount)          /* here we have the new total amount of the receiver that we don't know so we use the local var defined at the top of "Sending Tokens" describer */
+ 	
+ 	/* log balance after sending (This is just made to explictly see it in the console of hardat node) */
+ 		console.log("Deployer balance after transfer", await token.balanceOf(deployer.address))
+ 		console.log("Receiver balance after transfer", await token.balanceOf(receiver.address))
+
+ 	})
+
+ 	it('emits a Transfer event', async () => {         /* here we have the test function for the emission of the events in the tranfer function written in the soldity file */
+ 		const event = result.events[0]
+ 		expect(event.event).to.equal('Transfer')
+
+ 		const args = event.args
+		expect(args.from).to.equal(deployer.address)
+ 		expect(args.to).to.equal(receiver.address)
+ 		expect(args.value).to.equal(amount)
+ 	})
+
+  })
+
+ describe('Failure', () => { /* grouping the functions for transaction results */
+
+  it('rejects insufficient balance', async () => {
+
+  	/* transfer more token than smart contract deployer amount -100M */
+  	const invalidAmount = tokens(100000000)
+  	await expect(token.connect(deployer).transfer(receiver.address, invalidAmount)).to.be.reverted
+	})
+    
+    /* transfer token to a random address (0x000...) that non exists */
+  it('rejects invalid recipient', async () => {
+  	const amount = tokens(100) /* the amount is optional here */
+  	await expect(token.connect(deployer).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+  })
+
+  
+ })
+
+ 	
  })
 
 })
