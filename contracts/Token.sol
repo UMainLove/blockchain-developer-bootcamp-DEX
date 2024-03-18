@@ -12,11 +12,17 @@ contract Token {
 
 	//Track Balances of accounts that own the token
 	mapping(address => uint256) public balanceOf; /* mapping is a database function where (in this case) for each address correspond a number(the balance). This object becomes a function variable that contain the database itself(balanceOf). Any values is stored in the blockchain */
-
+	mapping(address => mapping(address => uint256)) public allowance; /* this is a nested mapping where the deployer address calls the exchange address to give the permission to spend money in its behalf */
 
 	event Transfer(                    /* this is a function that allow us to visualize the data we write in as a log of the blockchain. The data 'indexed' means that is easier to find in the emission of the event. An event is emitted in the choosen functions of the smart contract */
 		address indexed from,
 		address indexed to,
+		uint256 value
+	);
+
+	event Approval(                   /* this event and the approve function comes from the EIP-20 from the official ethereum source */
+		address indexed owner,
+		address indexed spender,
 		uint256 value
 	);
 
@@ -52,6 +58,21 @@ contract Token {
 		//emitting the event
 		emit Transfer(msg.sender, _to, _value);  /* to emit an event we just explictly call the function with the arguments that has to be replaced with the vars defined in the function we want to emit the event (in thsi case the '_from' is the "msg.sender", the '_to' is the "_to" and the '_value' is the "_value") */
 
+	return true;
+	}
+
+
+
+
+	//Approve token spending for the spender
+	function approve(address _spender, uint256 _value)
+		public
+	returns (bool success)
+	{
+		require(_spender != address(0));                /* the approver is required to be different from the first account */
+		allowance[msg.sender][_spender] = _value;       /* this is the correct way to access to the nested mapping defined before (using 2 values in 2 different '[...]') */
+		emit Approval(msg.sender, _spender, _value);    /* now we're going to call the event for this function with the local var of the function */
+	
 	return true;
 	}
 }

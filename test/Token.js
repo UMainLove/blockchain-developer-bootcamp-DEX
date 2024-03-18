@@ -11,7 +11,7 @@ describe('Token', () => { /* here we're describing the functions that have to be
 	/*        tests go inside here...       */
 
 
-let token, accounts, deployer, receiver   /* this allow us to use these variables in every test function */
+let token, accounts, deployer, receiver, exchange   /* this allow us to use these variables in every test function */
 
 
 	beforeEach(async () => { /* first beforeEach */
@@ -24,6 +24,7 @@ let token, accounts, deployer, receiver   /* this allow us to use these variable
 		accounts = await ethers.getSigners()                                    /* >>>>>>>>this function from ehters library allow us to retrieve the accounts and is assigned to the "accounts" var */
 		deployer = accounts[0]               /* here we're trying to get the first account from the hardhat node in the "deployer" var */
 		receiver = accounts[1]               /* here we're trying to get the second account from the hardhat node in the "receiver" var */
+		exchange = accounts[2]               /* here we're trying to get the third account from the hardhat node in the "exchange" var */
 	})
 
 
@@ -149,6 +150,41 @@ let token, accounts, deployer, receiver   /* this allow us to use these variable
  })
 
  	
+ })
+
+ describe('Approving Tokens', () => {
+
+ 	let amount, transaction, result                 /* these var are used in this function to chose the amount to approve */
+
+
+ 	beforeEach(async () => {
+ 		amount = tokens(100) /* the chosen amount for this test example */
+ 		transaction = await token.connect(deployer).approve(exchange.address, amount) /* >>>>>>>in this var 'transaction' we use a function that connects the the deployer wallet to the token smart contract deployed on chain. Then we approve the token to the exchange ADDRESS already defined before in the first "beforeEach" function and choose an amount (in this example case is 100). REMEMBER THAT THE ADDRESS PROPRETY IS A CALL FROM "ETHERS" LIBRARY SO WE'RE NOT DEFINING EXPLICITLY THE ADDRESS BUT JUST THE ACCOUNTS */
+ 		result = await transaction.wait() /* here we wait for the transaction to be executed in the blockchain and get a result in the 'result' var */
+ 		
+ 	})
+ 	
+ 	describe('Success', () => {
+ 		it('allocates an allowance for delegated token spending', async () => {
+ 			expect(await token.allowance(deployer.address, exchange.address)).to.equal(amount)  /* this is the test for the success of token approval. 'Allowance' is from the solidity file because needs a separate function for token approval */
+ 		})
+
+ 		it('emits an Approval event', async () => {         /* here we have the test function for the emission of the events in the approval function written in the soldity file */
+ 		const event = result.events[0]
+ 		expect(event.event).to.equal('Approval')
+
+ 		const args = event.args
+		expect(args.owner).to.equal(deployer.address)
+ 		expect(args.spender).to.equal(exchange.address)
+ 		expect(args.value).to.equal(amount)
+ 	})
+ 	})
+
+ 	describe('Failure', () => {
+ 		it('rejects invalid spender', async () => {
+ 			await expect(token.connect(deployer).approve('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+ 		})
+ 	})
  })
 
 })
