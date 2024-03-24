@@ -119,7 +119,7 @@ let token, accounts, deployer, receiver, exchange   /* this allow us to use thes
 
  	})
 
- 	it('emits a Transfer event', async () => {         /* here we have the test function for the emission of the events in the tranfer function written in the soldity file */
+ 	it('emits a Transfer event', async () => {         /* here we have the test function for the emission of the events in the transfer function written in the soldity file */
  		const event = result.events[0]
  		expect(event.event).to.equal('Transfer')
 
@@ -177,7 +177,7 @@ let token, accounts, deployer, receiver, exchange   /* this allow us to use thes
 		expect(args.owner).to.equal(deployer.address)
  		expect(args.spender).to.equal(exchange.address)
  		expect(args.value).to.equal(amount)
- 	})
+ 		})
  	})
 
  	describe('Failure', () => {
@@ -187,4 +187,50 @@ let token, accounts, deployer, receiver, exchange   /* this allow us to use thes
  	})
  })
 
+
+
+ describe('Delegated Tokens Transfer', () => {
+
+ 	let amount, transaction, result                 /* these var are used in this function to chose the amount to approve */
+
+ 	beforeEach(async () => {
+ 		amount = tokens(100) /* the chosen amount for this test example */
+ 		transaction = await token.connect(deployer).approve(exchange.address, amount) /* >>>>>>>in this var 'transaction' we use a function that connects the the deployer wallet to the token smart contract deployed on chain. Then we approve the token to the exchange ADDRESS already defined before in the first "beforeEach" function and choose an amount (in this example case is 100). REMEMBER THAT THE ADDRESS PROPRETY IS A CALL FROM "ETHERS" LIBRARY SO WE'RE NOT DEFINING EXPLICITLY THE ADDRESS BUT JUST THE ACCOUNTS */
+ 		result = await transaction.wait() /* here we wait for the transaction to be executed in the blockchain and get a result in the 'result' var */
+ 		
+ 	})
+
+ 	describe('Success', () => {
+ 		beforeEach(async () => {
+ 		transaction = await token.connect(exchange).transferFrom(deployer.address, receiver.address, amount) /* >>>>>>>in this var 'transaction' we use a function that connects the the exchange address that has been used to approve the transfer function. We connect also the deployer and the receiver addresses to let spend token in its behalf through the 'transferFrom' function. */
+ 		result = await transaction.wait() /* here we wait for the transaction to be executed in the blockchain and get a result in the 'result' var */
+ 		
+ 	})
+ 		it('transfers token balance', async () => {
+ 			expect(await token.balanceOf(deployer.address)).to.be.equal(ethers.utils.parseUnits("999900", "ether"))
+ 			expect(await token.balanceOf(receiver.address)).to.be.equal(amount)
+ 		})
+
+ 		it('resets the allowance', async () => {
+ 			expect(await token.allowance(deployer.address, exchange.address)).to.be.equal(0)
+ 		})
+
+ 		it('emits a Transfer event', async () => {         /* here we have the test function for the emission of the events in the delegated transfer function written in the soldity file */
+ 		const event = result.events[0]
+ 		expect(event.event).to.equal('Transfer')
+
+ 		const args = event.args
+		expect(args.from).to.equal(deployer.address)
+ 		expect(args.to).to.equal(receiver.address)
+ 		expect(args.value).to.equal(amount)
+ 		})
+ 	})
+
+ 	describe('Failure', () => {
+ 		it('Rejects insufficient amounts', async () => {
+		const invalidAmount = tokens(100000000)
+		await expect(token.connect(exchange).transferFrom(deployer.address, receiver.address, invalidAmount)).to.be.reverted
+		})
+ 	})
+ })
 })
