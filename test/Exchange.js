@@ -17,6 +17,8 @@ describe('Exchange', () => {
 		const Token = await ethers.getContractFactory('Token')             /* we import Token contract also in the test */
 
 		token1 = await Token.deploy('Dapp University', 'DAPP', '1000000')			   /* we could have more than a token in the exchange so this is token1 */
+		token2 = await Token.deploy('Mock Dai', 'mDAI', '1000000')					   /* this is a sample of the secon token available in the exchange and refers to a copy of the DAI stablecoin */
+
 
 		accounts = await ethers.getSigners()
 		deployer = accounts[0]
@@ -27,7 +29,6 @@ describe('Exchange', () => {
 		await transaction.wait()
 
 		exchange = await Exchange.deploy(feeAccount.address, feePercent) /* the smart contract is deployed... */
-
 	})
 
 
@@ -41,6 +42,7 @@ describe('Exchange', () => {
 			expect(await exchange.feePercent()).to.equal(feePercent)            /* checking if the percentage of fees is correct */
 		})
 	})
+
 
 	describe('Depositing tokens', () => {
 		
@@ -87,7 +89,6 @@ describe('Exchange', () => {
 			})
 		})
 	})
-
 
 
 	describe('Withdrawing tokens', () => {
@@ -143,7 +144,6 @@ describe('Exchange', () => {
 	})
 
 
-
 	describe('Checking balances', () => {
 		
 		let transaction, result
@@ -159,13 +159,63 @@ describe('Exchange', () => {
 		//deposit tokens
 		transaction = await exchange.connect(user1).depositToken(token1.address, amount)
 		result = await transaction.wait()        /* check for the result of the transaction */
-		
+
 		})
 			it('returns user balance', async () => {
 				expect(await exchange.balanceOf(token1.address, user1.address)).to.equal(amount)
 			})
-	
-		
+	})
+
+
+	describe('Making orders', async () => {
+
+		let transaction, result
+
+		let amount = tokens(1)    /* in this test we make an order 1:1 so 1 token to give and 1 token to get */
+
+		describe('Success', async () => {
+			beforeEach(async () => {
+
+		//deposit tokens before making order
+
+		//approve token
+		transaction = await token1.connect(user1).approve(exchange.address, amount)
+		result = await transaction.wait()         /* wait for the finish of the transaction */
+
+		//deposit tokens
+		transaction = await exchange.connect(user1).depositToken(token1.address, amount)
+		result = await transaction.wait()        /* check for the result of the transaction */
+
+		//make order
+		transaction = await exchange.connect(user1).makeOrder(token2.address, amount, token1.address, amount)   
+		result = await transaction.wait()
+			})
+
+			it('tracks the newly created order', async () => {
+				expect(await exchange.orderCount()).to.equal(1)
+			})
+
+			it('emits an order event', async () => {
+				const event = result.events[0] 
+ 				expect(event.event).to.equal('Order')
+
+ 				const args = event.args
+				expect(args.id).to.equal(1)
+ 				expect(args.user).to.equal(user1.address)
+ 				expect(args.tokenGet).to.equal(token2.address)
+ 				expect(args.amountGet).to.equal(tokens(1))
+ 				expect(args.tokenGive).to.equal(token1.address)
+ 				expect(args.amountGive).to.equal(tokens(1))
+ 				expect(args.timestamp).to.at.least(1)
+			})
+		})
+
+		describe('Failure', async () => {
+			it('rejects orders with no balance', async () => {
+				await expect(exchange.connect(user1).makeOrder(token2.address, tokens(1), token1.address, tokens(1))).to.be.reverted
+			})
+
+		})
 	})
 
 })
