@@ -236,6 +236,18 @@ describe('Exchange', () => {
 			transaction = await exchange.connect(user1).depositToken(token1.address, amount)
 			result = await transaction.wait()        /* check for the result of the transaction */
 
+			//give tokens for user2 
+			transaction = await token2.connect(deployer).transfer(user2.address, tokens(100))      /* used in the filling order test (initially user2 has token2 before the trade) */
+			result = await transaction.wait()
+
+			//approve tokens for user2 
+			transaction = await token2.connect(user2).approve(exchange.address, tokens(2))        /* this is the depositing tokens process in the exchange to fill order */
+			result = await transaction.wait()
+
+			//deposit tokens for user2
+			transaction = await exchange.connect(user2).depositToken(token2.address, tokens(2))
+			result = await transaction.wait()
+
 			//make order
 			transaction = await exchange.connect(user1).makeOrder(token2.address, amount, token1.address, amount)   
 			result = await transaction.wait()
@@ -301,6 +313,76 @@ describe('Exchange', () => {
 				    })
 				
 			})
+		})
+
+		describe('Filling orders', async () => {
+		  
+		  describe('Success', async () => { 
+			
+			beforeEach(async () => {
+
+				//user2 fills the order
+				transaction = await exchange.connect(user2).fillOrder('1')
+				result = await transaction.wait()	
+			})
+
+			it('Execute the trades and charge the fees', async () => {
+
+				//check balance and do the trade
+				expect(await exchange.balanceOf(token1.address, user1.address)).to.equal(tokens(0))          /* the tokens for the trade are taken by the exchange from account 1 */
+				expect(await exchange.balanceOf(token1.address, user2.address)).to.equal(tokens(1))          /* tokens1 are given to the account 2 */
+				expect(await exchange.balanceOf(token1.address, feeAccount.address)).to.equal(tokens(0))     /* fees are not charged from token1 */
+				expect(await exchange.balanceOf(token2.address, user1.address)).to.equal(tokens(1))			 /* tokens2 are given to the account 1 */
+				expect(await exchange.balanceOf(token2.address, user2.address)).to.equal(tokens(0.9))		 /* tokens1 are given to the account 2 with deducted fees */
+				expect(await exchange.balanceOf(token2.address, feeAccount.address)).to.equal(tokens(0.1))   /* fees are charged from token2 */
+			})
+
+			it('Updates cancelled orders', async () => {
+				expect(await exchange.orderFilled(1)).to.equal(true)
+			})
+
+			//ensure trade happened
+			it('emits a trade event', async () => {
+				const event = result.events[0] 
+ 				expect(event.event).to.equal('Trade')
+
+ 				const args = event.args
+				expect(args.id).to.equal(1)
+ 				expect(args.user).to.equal(user2.address)
+ 				expect(args.tokenGet).to.equal(token2.address)
+ 				expect(args.amountGet).to.equal(tokens(1))
+ 				expect(args.tokenGive).to.equal(token1.address)
+ 				expect(args.amountGive).to.equal(tokens(1))
+ 				expect(args.creator).to.equal(user1.address)
+ 				expect(args.timestamp).to.at.least(1)
+			})
+		  })
+
+		  describe('Failure', async () => {
+
+		  	//checking for the 3 conditions put in the 'fillOrder' function
+		  	it('Rejects invalid order ids', async () => {
+					
+					//rejects invalid order id (in this case the id is 99999)
+					const invalidOrderId = 99999
+					await expect(exchange.connect(user2).fillOrder(invalidOrderId)).to.be.reverted
+		    })
+
+		  	it('rejects already filled orders', async () => {
+		  		transaction = await exchange.connect(user2).fillOrder(1)
+		  		await transaction.wait()
+
+		  		await expect(exchange.connect(user2).fillOrder(1)).to.be.reverted
+		  	})
+
+		  	it('Rejects cancelled orders', async () => {
+
+				    transaction = await exchange.connect(user1).cancelOrder(1)
+				    await transaction.wait()
+
+				    await expect(exchange.connect(user2).fillOrder(1)).to.be.reverted
+		    })
+		  })
 		})
 	})
 })
