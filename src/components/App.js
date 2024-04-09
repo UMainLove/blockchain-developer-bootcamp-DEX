@@ -6,7 +6,8 @@ import {
  loadProvider,
  loadNetwork,
  loadAccount,
- loadToken
+ loadTokens,
+ loadExchange
    } from '../store/interactions';
 
 function App() {
@@ -15,16 +16,24 @@ function App() {
 
   //this function allows an RPC call through the local node of hardhat to get the accounts connected
   const loadBlockchainData = async () => {
-    await loadAccount(dispatch)
-   
-
-    //connect ethers library to blockchain
-    const provider = loadProvider(dispatch)
-    const chainId = await loadNetwork(provider, dispatch)
     
+   //connect ethers library to blockchain
+    const provider = loadProvider(dispatch)
+
+    //fetch current network chainId
+    const chainId = await loadNetwork(provider, dispatch)
+
+    //fetch current account and balance from metamask   
+    await loadAccount(provider, dispatch) 
 
     //token smart contract connection to the blockchain
-    await loadToken(provider, config[chainId].dapp.address, dispatch)
+    const dapp = config[chainId].dapp
+    const mETH = config[chainId].mETH
+    await loadTokens(provider, [dapp.address, mETH.address], dispatch)
+
+    //exchange smart contract connection to the blockchain
+    const exchangeConfig = config[chainId].exchange 
+    await loadExchange(provider, exchangeConfig.address, dispatch)
     
   }
 

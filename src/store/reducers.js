@@ -16,10 +16,10 @@ export const provider = (state = {}, action) => {   /*'export' allows to import 
         ...state,
         connection: action.account
       }
-    case 'TOKEN_LOADED':
+    case 'ETHER_BALANCE_LOADED':
       return {
         ...state,
-        connection: action.token
+        balance: action.balance
       }
 
       default:
@@ -27,14 +27,43 @@ export const provider = (state = {}, action) => {   /*'export' allows to import 
   }
 }
 
-export const tokens = (state = { loaded: false, contract: null }, action) => {   /*'export' allows to import the states from other files */
+const DEFAULT_TOKENS_STATE = { 
+loaded: false, 
+contracts: [], 
+symbols: [] 
+}
+
+export const tokens = (state = DEFAULT_TOKENS_STATE, action) => {   /*'export' allows to import the states from other files */
   switch (action.type) {
-    case 'TOKEN_LOADED':
+    case 'TOKEN_1_LOADED':
       return {
         ...state,
         loaded: true,
-        contract: action.token,
-        symbol: action.symbol
+        contracts: [...state.contracts, action.token],
+        symbols: [...state.symbols, action.symbol]
+      }
+    case 'TOKEN_2_LOADED':
+      return {
+        ...state,
+        loaded: true,
+        contracts: [...state.contracts, action.token],
+        symbols: [...state.symbols, action.symbol]
+      }
+
+      default:
+        return state
+  }
+}
+
+
+
+export const exchange = (state = { loaded: false, contract: {} }, action) => {   
+  switch (action.type) {
+    case 'EXCHANGE_LOADED':
+      return {
+        ...state,
+        loaded: true,
+        contract: action.exchange
       }
 
       default:
