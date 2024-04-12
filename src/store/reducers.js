@@ -9,12 +9,12 @@ export const provider = (state = {}, action) => {   /*'export' allows to import 
     case 'NETWORK_LOADED':
       return {
         ...state,
-        connection: action.chainId
+        chainId: action.chainId
       }
     case 'ACCOUNT_LOADED':
       return {
         ...state,
-        connection: action.account
+        account: action.account
       }
     case 'ETHER_BALANCE_LOADED':
       return {

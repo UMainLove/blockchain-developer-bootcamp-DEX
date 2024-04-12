@@ -10,6 +10,8 @@ import {
  loadExchange
    } from '../store/interactions';
 
+import Navbar from './Navbar'
+
 function App() {
   
   const dispatch = useDispatch()                                           /* a variable triggers the dispatch function */
@@ -23,9 +25,18 @@ function App() {
     //fetch current network chainId
     const chainId = await loadNetwork(provider, dispatch)
 
-    //fetch current account and balance from metamask   
-    await loadAccount(provider, dispatch) 
+    //reload page when network changes
+    window.ethereum.on('chainChanged', () => {
 
+      window.location.reload()
+    })
+
+    //fetch current account and balance from metamask and change it if there's another account selected
+    window.ethereum.on('accountsChanged', () => {
+
+      loadAccount(provider, dispatch)
+    })  
+     
     //token smart contract connection to the blockchain
     const dapp = config[chainId].dapp
     const mETH = config[chainId].mETH
@@ -44,7 +55,7 @@ function App() {
   return (
     <div>
 
-      {/* Navbar */}
+      <Navbar />
 
       <main className='exchange grid'>
         <section className='exchange__section--left grid'>
