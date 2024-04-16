@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux'                                  /* this library is imported to use the 'dispatch' function */
+import { useDispatch } from 'react-redux';                                  /* this library is imported to use the 'dispatch' function */
 import config from '../config.json';
 
 import {
@@ -7,11 +7,13 @@ import {
  loadNetwork,
  loadAccount,
  loadTokens,
- loadExchange
+ loadExchange,
+ subscribeToEvents
    } from '../store/interactions';
 
 import Navbar from './Navbar'
 import Markets from './Markets'
+import Balance from './Balance'
 
 function App() {
   
@@ -45,8 +47,9 @@ function App() {
 
     //exchange smart contract connection to the blockchain
     const exchangeConfig = config[chainId].exchange 
-    await loadExchange(provider, exchangeConfig.address, dispatch)
+    const exchange = await loadExchange(provider, exchangeConfig.address, dispatch)
     
+    subscribeToEvents(exchange, dispatch)
   }
 
   useEffect(() => {
@@ -63,7 +66,7 @@ function App() {
 
           < Markets />
 
-          {/* Balance */}
+          < Balance />
 
           {/* Order */}
 
