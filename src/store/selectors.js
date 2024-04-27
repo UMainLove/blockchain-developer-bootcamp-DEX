@@ -52,7 +52,6 @@ export const myOpenOrdersSelector = createSelector(
     	//order shown as descending time
     	orders = orders.sort((a, b) => b.timestamp - a.timestamp)
 
-    	console.log(orders)
     	return orders
 	}
 ) 
@@ -168,6 +167,64 @@ const tokenPriceClass = (tokenPrice, orderId, previousOrder) => {
 	} else {
 		return RED 		   /* show red color for order that has token price lower than the previous order */
 	}
+}
+
+export const myFilledOrdersSelector = createSelector(
+	account,
+	tokens,
+	filledOrders,
+	(account, tokens, orders) => {
+
+		if (!tokens[0] || !tokens[1]) { return }
+
+		//filter orders based on the creator and the user (creator and user are the names used by the raw data)
+		orders = orders.filter((o) => o.user === account || o.creator === account)
+
+		//filter orders for current tokens trading pair
+		orders = orders.filter((o) => o.tokenGet === tokens[0].address || o.tokenGet === tokens[1].address)    
+   	 	orders = orders.filter((o) => o.tokenGive === tokens[0].address || o.tokenGive === tokens[1].address)
+
+   	 	//sort orders by time ascending for price comparison
+    	orders = orders.sort((a, b) => a.timestamp - b.timestamp)
+
+    	//decorate orders to display with attributes
+    	orders = decorateMyFilledOrders(orders, account, tokens)
+
+    	//order shown as descending time in UI
+    	orders = orders.sort((a, b) => b.timestamp - a.timestamp)
+
+    	return orders
+	}
+) 
+
+const decorateMyFilledOrders = (orders, account, tokens) => {
+
+	return(
+		orders.map((order) => {
+			order = decorateOrder(order, tokens) /* decorate each individual order */
+			order = decorateMyFilledOrder(order, account, tokens)
+			return(order)
+		})
+	)
+}
+
+const decorateMyFilledOrder = (order, account, tokens) => {
+
+	const myOrder = order.creator === account
+
+	let orderType  
+	if(myOrder) {
+		orderType = order.tokenGive === tokens[1].address ? 'buy' : 'sell'
+	} else {
+		orderType = order.tokenGive === tokens[1].address ? 'sell' : 'buy'
+	}
+
+	return({
+		...order,
+		orderType,
+		orderClass: (orderType === 'buy' ? GREEN : RED),
+		orderSign: (orderType === 'buy' ? '+' : '-')
+		})
 }
 
 export const orderBookSelector = createSelector (
