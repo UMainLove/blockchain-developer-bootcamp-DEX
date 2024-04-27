@@ -1,3 +1,9 @@
+//THIS IS THE WORKFLOW DESCRIPTION
+//smart contract functionalities available tu use(solidity files)->smart contract functions delivered to the blockchain to be executed(interactions.js)->registering every action made on blockchain by users on a web server(reducers.js)->showing the updates of the register and call every possible action action in the application (selectors.js)->providing the user interface structure updated in real time (app.js)->creating the user interface widgets to directly interact with the application(every file available in components folder)
+
+
+
+
 //this functions allows to connect the actions made on the exchange to use the smart contract functions through state variables that are stored constantly in the database(->store.js) and get updated at every new action
 export const provider = (state = {}, action) => {   /*'export' allows to import the states from other files */
   switch (action.type) {
@@ -108,6 +114,42 @@ export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
         allOrders: {
           loaded: true,
           data: action.allOrders
+        }
+      }
+    case 'ORDER_CANCEL_REQUEST':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: true,
+          isSuccessful: false
+        }
+      }
+    case 'ORDER_CANCEL_SUCCESS':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: false,
+          isSuccessful: true
+        },
+        cancelledOrders: {
+          ...state.cancelledOrders,
+          data: [
+            ...state.cancelledOrders.data,
+            action.order
+          ]
+        },
+        events: [action.event, ...state.events]
+      }
+    case 'ORDER_CANCEL_FAIL':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: false,
+          isSuccessful: false,
+          isError: true
         }
       }
     case 'EXCHANGE_TOKEN_1_BALANCE_LOADED':
