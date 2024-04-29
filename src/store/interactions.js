@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import TOKEN_ABI from '../ABIs/Token.json';
 import EXCHANGE_ABI from '../ABIs/Exchange.json';
 
+
 export const loadProvider = (dispatch) => {
 	const connection = new ethers.providers.Web3Provider(window.ethereum)
     dispatch({ type: 'PROVIDER_LOADED', connection })            /* this function puts the functions inside the store */
@@ -57,6 +58,11 @@ export const subscribeToEvents = (exchange, dispatch) => {
   	dispatch({ type: 'ORDER_CANCEL_SUCCESS', order, event })
   })
 
+  exchange.on('Trade', (id, user, tokenGet, amountGet, tokenGive, amountGive, creator, timestamp, event) => {
+  	const order = event.args
+  	dispatch({ type: 'ORDER_FILL_SUCCESS', order, event })
+  })
+
   exchange.on('Deposit', (token, user, amount, balance, event) => {
     dispatch({ type: 'TRANSFER_SUCCESS', event })
   })
@@ -104,7 +110,10 @@ export const loadBalances = async (exchange, tokens, account, dispatch) => {
 export const loadAllOrders = async (provider, exchange, dispatch) => {
 
   const block = await provider.getBlockNumber()
-
+//___
+  
+  
+ //__
   // Fetch canceled orders
   const cancelStream = await exchange.queryFilter('Cancel', 0, block)
   const cancelledOrders = cancelStream.map(event => event.args)
@@ -210,7 +219,22 @@ export const cancelOrder = async (provider, exchange, order, dispatch) => {
 
 	} catch (error) {
 		dispatch({ type: 'ORDER_CANCEL_FAIL' })
+	}
 }
 
 
+export const fillOrder = async (provider, exchange, order, dispatch) => {
+
+	dispatch({ type: 'ORDER_FILL_REQUEST' })
+
+	try {
+		
+		const signer = await provider.getSigner()
+
+	const transaction = await exchange.connect(signer).fillOrder(order.id)
+	await transaction.wait()
+
+	} catch (error) {
+		dispatch({ type: 'ORDER_FILL_FAIL' })
+	}
 }
