@@ -20,7 +20,7 @@ import PriceChart from './PriceChart'
 import Orderbook from './Orderbook'
 import Transactions from './Transactions'
 import Trades from './Trades'
-
+import Alert from './Alert'
 
 function App() {
   
@@ -93,7 +93,7 @@ function App() {
         </section>
       </main>
 
-      {/* Alert */}
+      < Alert />
 
     </div>
   );
